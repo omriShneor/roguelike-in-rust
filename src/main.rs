@@ -1,15 +1,21 @@
 mod components;
+mod map;
 use rltk::{GameState, Rltk, RGB, VirtualKeyCode};
 use specs::prelude::*;
 use std::cmp::{max, min};
 use components::{Position, Renderable, LeftMover, Player};
+use map::{new_map, TileType, draw_map, xy_idx};
 
 fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let mut players = ecs.write_storage::<Player>();
+    let map = ecs.fetch::<Vec<TileType>>();
     for (_player, pos) in (&mut players, &mut positions).join() {
-        pos.x = min(79, max(0, pos.x + delta_x));
-        pos.y = min(49, max(0, pos.y + delta_y));
+        let destination_idx = xy_idx(pos.x+delta_x, pos.y+delta_y);
+        if map[destination_idx] != TileType::Wall {
+            pos.x = min(79, max(0, pos.x + delta_x));
+            pos.y = min(49, max(0, pos.y + delta_y));
+        }
     }
 }
 
@@ -47,6 +53,8 @@ impl GameState for State {
         ctx.cls();
         self.run_systems();
         player_input(self, ctx);
+        let map = self.ecs.fetch::<Vec<TileType>>();
+        draw_map(&map, ctx);
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
         for (pos, render) in (&positions, &renderables).join() {
@@ -71,6 +79,7 @@ fn main() -> rltk::BError {
     let mut gs = State {
         ecs: World::new()
     };
+    gs.ecs.insert(new_map());
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<LeftMover>();
@@ -86,19 +95,6 @@ fn main() -> rltk::BError {
         })
         .with(Player{})
         .build();
-
-    for i in 0..10 {
-        gs.ecs
-            .create_entity()
-            .with(Position{x: i * 10, y: 20})
-            .with(Renderable {
-                glyph: rltk::to_cp437('☺'),
-                fg: RGB::named(rltk::RED),
-                bg: RGB::named(rltk::BLACK),
-            })
-            .with(LeftMover{})
-            .build();
-    }
 
     rltk::main_loop(context, gs)
 }
