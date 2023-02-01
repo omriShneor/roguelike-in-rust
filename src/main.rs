@@ -1,10 +1,12 @@
 mod components;
 mod map;
+mod visibility_system;
 pub mod rect;
-use rltk::{GameState, Rltk, RGB, VirtualKeyCode};
+use visibility_system::VisibilitySystem;
+use rltk::{GameState, Rltk, RGB, VirtualKeyCode, Point};
 use specs::prelude::*;
 use std::cmp::{max, min};
-use components::{Position, Renderable, Player};
+use components::{Position, Renderable, Player, Viewshed};
 use map::{TileType, Map};
 
 
@@ -34,15 +36,24 @@ fn player_input(gs: &mut State, ctx: &mut Rltk) {
     }
 }
 
-pub fn draw_map(map: &Map, ctx: &mut Rltk) {
-    for y in 0..map.height {
-        for x in 0..map.width {
-            match map.tiles[map.xy_idx(x,y)] {
-                TileType::Floor => {
-                    ctx.set(x,y, RGB::from_f32(0.5,0.5,0.5), RGB::from_f32(0.,0.,0.), rltk::to_cp437('.'));
-                }
-                TileType::Wall => {
-                    ctx.set(x,y, RGB::from_f32(0.0,1.0,0.0), RGB::from_f32(0.,0.,0.), rltk::to_cp437('#'));
+pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
+    let mut viewsheds = ecs.write_storage::<Viewshed>();
+    let mut players = ecs.write_storage::<Player>();
+    let map = ecs.fetch::<Map>();
+
+    for (_player, viewshed) in (&mut players, &mut viewsheds).join() {
+        for y in 0..map.height {
+            for x in 0..map.width {
+                let pt = Point::new(x,y);
+                if viewshed.visible_tiles.contains(&pt) {
+                    match map.tiles[map.xy_idx(x,y)] {
+                        TileType::Floor => {
+                            ctx.set(x,y, RGB::from_f32(0.5,0.5,0.5), RGB::from_f32(0.,0.,0.), rltk::to_cp437('.'));
+                        }
+                        TileType::Wall => {
+                            ctx.set(x,y, RGB::from_f32(0.0,1.0,0.0), RGB::from_f32(0.,0.,0.), rltk::to_cp437('#'));
+                        }
+                    }
                 }
             }
         }
@@ -60,7 +71,7 @@ impl GameState for State {
         self.run_systems();
         player_input(self, ctx);
         let map = self.ecs.fetch::<Map>();
-        draw_map(&map, ctx);
+        draw_map(&self.ecs, ctx);
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
         for (pos, render) in (&positions, &renderables).join() {
@@ -71,6 +82,8 @@ impl GameState for State {
 
 impl State {
     fn run_systems(&mut self) {
+        let mut vis = VisibilitySystem{};
+        vis.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -91,6 +104,7 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Player>();
+    gs.ecs.register::<Viewshed>();
 
     gs.ecs
         .create_entity()
@@ -101,6 +115,7 @@ fn main() -> rltk::BError {
         bg: RGB::named(rltk::BLACK), 
         })
         .with(Player{})
+        .with(Viewshed{visible_tiles: Vec::new(), range:8})
         .build();
 
     rltk::main_loop(context, gs)

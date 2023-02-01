@@ -1,4 +1,4 @@
-use rltk::{Rltk, RGB};
+use rltk::{Algorithm2D, BaseMap, Point};
 use crate::rect::Rect;
 use std::cmp::{max, min};
 
@@ -73,7 +73,7 @@ impl Map {
             if ok {
                 map.apply_room_to_map(&new_room);
                 if !map.rooms.is_empty() {
-                    let (prev_x, prev_y) = map.rooms[map.rooms.len()-1].center();
+                    let (prev_x, prev_y) = map.rooms[map. rooms.len()-1].center();
                     let (new_x, new_y) = new_room.center();
                     if rng.range(0,2) == 1 {
                         map.apply_horizontal_tunnel(prev_x, new_x, prev_y);
@@ -89,7 +89,18 @@ impl Map {
         }
         map
     }
-    
+}
+
+impl Algorithm2D for Map {
+    fn dimensions(&self) -> Point {
+        Point::new(self.width, self.height)
+    }
+}
+
+impl BaseMap for Map {
+    fn is_opaque(&self, idx: usize) -> bool {
+        self.tiles[idx as usize] == TileType::Wall
+    }
 }
 
 
