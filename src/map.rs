@@ -15,7 +15,8 @@ pub struct Map {
     pub tiles: Vec<TileType>,
     pub rooms: Vec<Rect>,
     pub width: i32,
-    pub height: i32
+    pub height: i32,
+    pub revealed_tiles: Vec<bool>
 }
 
 impl Map {
@@ -56,7 +57,8 @@ impl Map {
             tiles: vec![TileType::Wall; 80*50],
             rooms: Vec::new(),
             width: 80,
-            height: 50
+            height: 50,
+            revealed_tiles: vec![false; 80*50]
         };
         let mut rng = rltk::RandomNumberGenerator::new();
     
