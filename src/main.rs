@@ -18,14 +18,20 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
         for x in 0..map.width {
             let idx = map.xy_idx(x,y);
             if map.revealed_tiles[idx] {
+                let glyph;
+                let mut fg;
                 match map.tiles[idx] {
                     TileType::Floor => {
-                        ctx.set(x,y, RGB::from_f32(0.5,0.5,0.5), RGB::from_f32(0.,0.,0.), rltk::to_cp437('.'));
+                        glyph = rltk::to_cp437('.');
+                        fg = RGB::from_f32(0.0, 0.5, 0.5);
                     }
                     TileType::Wall => {
-                        ctx.set(x,y, RGB::from_f32(0.0,1.0,0.0), RGB::from_f32(0.,0.,0.), rltk::to_cp437('#'));
+                        glyph = rltk::to_cp437('#');
+                        fg = RGB::from_f32(0., 1.0, 0.);
                     }
                 }
+                if !map.visiable_tiles[idx] {fg = fg.to_greyscale()}
+                ctx.set(x, y, fg, RGB::from_f32(0., 0., 0.), glyph);
             }
         }
     }
