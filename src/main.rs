@@ -2,13 +2,15 @@ mod components;
 mod map;
 mod visibility_system;
 mod player;
+mod monster_ai_system;
 pub mod rect;
 use player::player_input;
 use visibility_system::VisibilitySystem;
+use monster_ai_system::MonsterAI;
 use rltk::{GameState, Rltk, RGB, VirtualKeyCode};
 use specs::prelude::*;
 use std::cmp::{max, min};
-use components::{Position, Renderable, Player, Viewshed};
+use components::{Position, Renderable, Player, Viewshed, Monster};
 use map::{TileType, Map};
 
 pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
@@ -65,6 +67,8 @@ impl State {
     fn run_systems(&mut self) {
         let mut vis = VisibilitySystem{};
         vis.run_now(&self.ecs);
+        let mut mob = MonsterAI{};
+        mob.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -85,6 +89,7 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Player>();
     gs.ecs.register::<Viewshed>();
+    gs.ecs.register::<Monster>();
 
 
     let mut rng = rltk::RandomNumberGenerator::new();
@@ -104,6 +109,7 @@ fn main() -> rltk::BError {
                 bg: RGB::named(rltk::BLACK),
             })
             .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true })
+            .with(Monster{})
             .build();
     }
     
