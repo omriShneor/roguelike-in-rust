@@ -7,10 +7,10 @@ pub mod rect;
 use player::player_input;
 use visibility_system::VisibilitySystem;
 use monster_ai_system::MonsterAI;
-use rltk::{GameState, Rltk, RGB, VirtualKeyCode};
+use rltk::{GameState, Rltk, RGB, VirtualKeyCode, Point};
 use specs::prelude::*;
-use std::cmp::{max, min};
-use components::{Position, Renderable, Player, Viewshed, Monster, RunState};
+use std::{cmp::{max, min}, fmt::format};
+use components::{Position, Renderable, Player, Viewshed, Monster, RunState, Name};
 use map::{TileType, Map};
 
 pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
@@ -96,16 +96,19 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Player>();
     gs.ecs.register::<Viewshed>();
     gs.ecs.register::<Monster>();
+    gs.ecs.register::<Name>();
+
 
 
     let mut rng = rltk::RandomNumberGenerator::new();
-    for room in map.rooms.iter().skip(1) {
+    for (i,room) in map.rooms.iter().skip(1).enumerate() {
         let (x,y) = room.center();
+        let name: String;
         let glyph: rltk::FontCharType;
         let roll = rng.roll_dice(1,2);
         match roll {
-            1 => { glyph = rltk::to_cp437('g')},
-            _ => { glyph = rltk::to_cp437('o')}
+            1 => { glyph = rltk::to_cp437('g'); name = "Goblin".to_string();},
+            _ => { glyph = rltk::to_cp437('o'); name = "Orc".to_string();}
         }
         gs.ecs.create_entity()
             .with(Position{ x, y })
@@ -116,6 +119,7 @@ fn main() -> rltk::BError {
             })
             .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true })
             .with(Monster{})
+            .with(Name{ name: format!("{} #{}", &name, i)})
             .build();
     }
     
@@ -130,7 +134,8 @@ fn main() -> rltk::BError {
         })
         .with(Player{})
         .with(Viewshed{visible_tiles: Vec::new(), range:8, dirty: true})
+        .with(Name {name: "Player".to_string()})
         .build();
-
+    gs.ecs.insert(Point::new(player_x, player_y));
     rltk::main_loop(context, gs)
 }
