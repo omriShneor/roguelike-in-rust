@@ -10,7 +10,7 @@ use monster_ai_system::MonsterAI;
 use rltk::{GameState, Rltk, RGB, VirtualKeyCode};
 use specs::prelude::*;
 use std::cmp::{max, min};
-use components::{Position, Renderable, Player, Viewshed, Monster};
+use components::{Position, Renderable, Player, Viewshed, Monster, RunState};
 use map::{TileType, Map};
 
 pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
@@ -42,13 +42,18 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
 
 pub struct State {
     ecs: World,
+    pub runstate: RunState
 }
 
 impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
         ctx.cls();
-        self.run_systems();
-        player_input(self, ctx);
+        if self.runstate == RunState::Running {
+            self.run_systems();
+            self.runstate = RunState::Paused;
+        } else {
+            self.runstate = player_input(self, ctx);
+        }
         draw_map(&self.ecs, ctx);
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
@@ -79,7 +84,8 @@ fn main() -> rltk::BError {
         .with_title("Roguelike Tutorial")
         .build()?;
     let mut gs = State {
-        ecs: World::new()
+        ecs: World::new(),
+        runstate: RunState::Running
     };
 
     let map = Map::new_map_rooms_and_corridors();

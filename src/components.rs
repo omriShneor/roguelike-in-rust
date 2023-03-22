@@ -27,3 +27,6 @@ pub struct Viewshed{
 
 #[derive(Component, Debug)]
 pub struct Monster{}
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum RunState {Paused, Running}
